@@ -35,7 +35,7 @@ class ProcessKillerExtension(Extension):
         setlocale(LC_NUMERIC, '')  # set to OS default locale;
 
     def show_notification(self, title, text=None, icon=ext_icon):
-        logger.debug('Show notification: %s' % text)
+        logger.debug(f'Show notification: {text}')
         icon_full_path = os.path.join(os.path.dirname(__file__), icon)
         Notify.init("KillerExtension")
         Notify.Notification.new(title, text, icon_full_path).show()
@@ -48,12 +48,17 @@ class KeywordQueryEventListener(EventListener):
 
     def generate_results(self, event):
         for (pid, cmd, path, arg) in get_process_list():
-            name = ('%s' % (cmd))
+            name = f'{cmd}'
             description = ('PID: %s\t command: %s ' % (pid, path))
             if len(arg) > 0:
             	description += '\nargs: %s' % arg
-            on_enter = {'alt_enter': False, 'pid': pid, 'cmd': cmd}
-            on_enter['keyword'] = event.get_keyword()
+            on_enter = {
+                'alt_enter': False,
+                'pid': pid,
+                'cmd': cmd,
+                'keyword': event.get_keyword(),
+            }
+
             on_enter['argument'] = event.get_argument()
             on_alt_enter = on_enter.copy()
             on_alt_enter['alt_enter'] = True
@@ -84,7 +89,7 @@ class ItemEnterEventListener(EventListener):
         except CalledProcessError as e:
             extension.show_notification("Error", "'kill' returned code %s" % e.returncode)
         except Exception as e:
-            logger.error('%s: %s' % (type(e).__name__, e.args[0]))
+            logger.error(f'{type(e).__name__}: {e.args[0]}')
             extension.show_notification("Error", "Check the logs")
             raise
 
@@ -98,7 +103,7 @@ class ItemEnterEventListener(EventListener):
         except CalledProcessError as e:
             extension.show_notification("Error", "'kill' returned code %s" % e.returncode)
         except Exception as e:
-            logger.error('%s: %s' % (type(e).__name__, e.args[0]))
+            logger.error(f'{type(e).__name__}: {e.args[0]}')
             extension.show_notification("Error", "Check the logs")
             raise
 
@@ -120,11 +125,10 @@ class ItemEnterEventListener(EventListener):
         data = event.get_data()
         if data['alt_enter']:
             return self.show_signal_options(data)
-        else:
-            if data['keyword'] == 'killall':
-                self.killall(extension, data['argument'])
-            if data['keyword'] == 'kill':
-                self.kill(extension, data['pid'], data.get('signal', 'TERM'))
+        if data['keyword'] == 'killall':
+            self.killall(extension, data['argument'])
+        if data['keyword'] == 'kill':
+            self.kill(extension, data['pid'], data.get('signal', 'TERM'))
 
 
 def get_process_list():
